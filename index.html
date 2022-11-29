@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<meta name=viewport content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
+
+body {
+  background: #112;
+  color: white;
+  font: 18px system-ui, Helvetica Neue, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  margin: 0;
+}
+
+button {
+  -webkit-appearance: none;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 1px solid white;
+  padding: 1em;
+  cursor: pointer;
+  transition: 0.25s transform;
+}
+
+button:active {
+  transform: scale(0.9);
+}
+
+</style>
+<button id=goButton style="display: none">Call the wind</button>
+<button id=stopButton style="display: none">Stop the wind</button>
+<script type=module>
+'use strict';
+
+import FilterChain from '/FilterChain.js';
+
+const ac = new (window.AudioContext || window.webkitAudioContext)();
+ac.suspend();
+
+const filterChain = new FilterChain(ac);
+const mixer = filterChain.in;
+filterChain.out.connect(ac.destination);
+
+const lfog = ac.createGain();
+lfog.gain.value = 100;
+
+{
+  const lfo = ac.createOscillator();
+  lfo.frequency.value = 0.1;
+  lfo.start()
+  lfo.connect(lfog);
+}
+
+{
+  const lfo = ac.createOscillator();
+  lfo.frequency.value = 0.111;
+  lfo.start()
+  lfo.connect(lfog);
+}
+
+const filtIn = ac.createGain();
+
+ac.audioWorklet.addModule('noiseWorklet.js').then(() => {
+  const noiseNode = new AudioWorkletNode(ac, 'noise-source', { outputChannelCount: [2] });
+  noiseNode.connect(filtIn);
+});
+
+for (let i = 0; i < 5; i++) {
+  const filt = ac.createBiquadFilter();
+  filtIn.connect(filt);
+  filt.Q.value = 10;
+  filt.frequency.value = 350 * (i/2+1);
+  lfog.connect(filt.frequency);
+  filt.connect(mixer);
+}
+
+let stopping = false;
+
+const checkState = () => {
+  if (stopping || ac.state === 'suspended') {
+    goButton.style.display = '';
+    stopButton.style.display = 'none';
+  } else {
+    goButton.style.display = 'none';
+    stopButton.style.display = '';
+  }
+};
+
+mixer.gain.value = 0;
+
+goButton.addEventListener('click', e => {
+  mixer.gain.setTargetAtTime(1, ac.currentTime, 10);
+  stopping = false;
+  ac.resume();
+  checkState();
+});
+
+stopButton.addEventListener('click', e => {
+  stopping = true;
+  checkState();
+  mixer.gain.setTargetAtTime(0, ac.currentTime, 0.1);
+  setTimeout(() => {
+    if (!stopping)
+      return;
+    ac.suspend();
+    stopping = false;
+  }, 1000);
+});
+
+ac.addEventListener('statechange', checkState);
+checkState();
+
+</script>
