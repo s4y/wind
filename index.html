@@ -18,7 +18,7 @@ button {
   font: inherit;
   color: inherit;
   background: none;
-  border: 1px solid white;
+  border: 2px solid white;
   padding: 1em;
   cursor: pointer;
   transition: 0.25s transform;
@@ -34,7 +34,7 @@ button:active {
 <script type=module>
 'use strict';
 
-import FilterChain from '/FilterChain.js';
+import FilterChain from 'FilterChain.js';
 
 const ac = new (window.AudioContext || window.webkitAudioContext)();
 ac.suspend();
