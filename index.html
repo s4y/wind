@@ -62,7 +62,7 @@ lfog.gain.value = 100;
 
 const filtIn = ac.createGain();
 
-ac.audioWorklet.addModule('noiseWorklet.js').then(() => {
+ac.audioWorklet.addModule('NoiseWorklet.js').then(() => {
   const noiseNode = new AudioWorkletNode(ac, 'noise-source', { outputChannelCount: [2] });
   noiseNode.connect(filtIn);
 });
